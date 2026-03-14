@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random CF Contest</title>
+    <meta name="description" content="Generate a random unsolved Codeforces contest for your handle">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="glass-card">
+            <h1>Random CF Contest</h1>
+            <p class="subtitle">Find an unsolved Codeforces contest to practice</p>
+            
+            <div class="input-group">
+                <input type="text" id="handle-input" placeholder="Enter your CF handle (Optional)" autocomplete="off" />
+                
+                <div class="filters-section">
+                    <div class="filter-row">
+                        <span class="filter-label">Source</span>
+                        <div class="toggle-group" id="source-group">
+                            <label class="toggle-btn"><input type="radio" name="source" value="normal" checked> <span>Normal</span></label>
+                            <label class="toggle-btn"><input type="radio" name="source" value="gym"> <span>Gym</span></label>
+                            <label class="toggle-btn"><input type="radio" name="source" value="both"> <span>Both</span></label>
+                        </div>
+                    </div>
+
+                    <div id="normal-filters" class="filter-row custom-collapse">
+                        <span class="filter-label">Divisions</span>
+                        <div class="chip-group" id="division-group">
+                            <label class="chip"><input type="checkbox" value="div1" checked> <span>Div. 1</span></label>
+                            <label class="chip"><input type="checkbox" value="div2" checked> <span>Div. 2</span></label>
+                            <label class="chip"><input type="checkbox" value="div3" checked> <span>Div. 3</span></label>
+                            <label class="chip"><input type="checkbox" value="div4" checked> <span>Div. 4</span></label>
+                            <label class="chip"><input type="checkbox" value="edu" checked> <span>Edu</span></label>
+                            <label class="chip"><input type="checkbox" value="global" checked> <span>Global</span></label>
+                            <label class="chip"><input type="checkbox" value="other" checked> <span>Other</span></label>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="get-contest-btn">Get Contest</button>
+            </div>
+
+            <div id="loader" class="hidden">
+                 <div class="spinner"></div>
+                 <p>Fetching data from Codeforces...</p>
+            </div>
+
+            <div id="result-container" class="hidden">
+                <div class="result-badge" id="result-badge">Div. 2</div>
+                <h2 id="contest-name">Contest Name</h2>
+                <div class="action-buttons">
+                    <a id="virtual-link" href="#" target="_blank" class="primary-btn">Start Virtual Contest</a>
+                    <a id="contest-link" href="#" target="_blank" class="secondary-btn">View Contest</a>
+                </div>
+            </div>
+
+            <div id="error-container" class="hidden">
+                <p id="error-message"></p>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
