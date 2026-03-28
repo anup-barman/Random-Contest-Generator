@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleGetContest() {
-        const handle = handleInput.value.trim();
+        const handleString = handleInput.value.trim();
         const source = getSelectedSource();
         const divisions = getSelectedDivisions();
 
@@ -88,18 +88,29 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const attemptedContests = new Set();
 
-            // Fetch user's status/submissions only if handle is provided
-            if (handle) {
-                const subsRes = await fetch(`https://codeforces.com/api/user.status?handle=${handle}`);
-                const subsData = await subsRes.json();
+            // Fetch users' status/submissions only if handles are provided
+            if (handleString) {
+                const handles = handleString.split(',').map(h => h.trim()).filter(h => h);
                 
-                if (subsData.status !== 'OK') {
-                    throw new Error(subsData.comment || "Failed to fetch user. Double check the handle.");
-                }
-
-                for (const sub of subsData.result) {
-                    if (sub.contestId) {
-                        attemptedContests.add(sub.contestId);
+                if (handles.length > 0) {
+                    const fetchUserPromises = handles.map(async (handle) => {
+                        const subsRes = await fetch(`https://codeforces.com/api/user.status?handle=${handle}`);
+                        const subsData = await subsRes.json();
+                        
+                        if (subsData.status !== 'OK') {
+                            throw new Error(subsData.comment || `Failed to fetch user ${handle}. Double check the handle.`);
+                        }
+                        return subsData.result;
+                    });
+                    
+                    const allUsersSubmissions = await Promise.all(fetchUserPromises);
+                    
+                    for (const userSubmissions of allUsersSubmissions) {
+                        for (const sub of userSubmissions) {
+                            if (sub.contestId) {
+                                attemptedContests.add(sub.contestId);
+                            }
+                        }
                     }
                 }
             }
