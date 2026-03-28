@@ -3,20 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Random CF Contest</title>
+    <title>Random CF Contest Dashboard</title>
     <meta name="description" content="Generate a random unsolved Codeforces contest for your handle">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <div class="glass-card">
-            <h1>Random CF Contest</h1>
-            <p class="subtitle">Find an unsolved Codeforces contest to practice</p>
+    <div class="dashboard-layout">
+        <!-- Sidebar Navigation & Filters -->
+        <aside class="sidebar glass-panel">
+            <header class="sidebar-header">
+                <h1>CF Randomizer</h1>
+                <p class="subtitle">Practice unsolved Codeforces contests</p>
+            </header>
             
             <div class="input-group">
-                <input type="text" id="handle-input" placeholder="Enter CF handles (comma separated, Optional)" autocomplete="off" />
+                <input type="text" id="handle-input" placeholder="Enter CF handles (comma separated)" autocomplete="off" />
                 
+                <div id="user-profiles-container" class="user-profiles hidden">
+                    <!-- Dynamic user profile widgets will be injected here -->
+                </div>
+
                 <div class="filters-section">
                     <div class="filter-row">
                         <span class="filter-label">Source</span>
@@ -41,7 +48,7 @@
                     </div>
                 </div>
 
-                <button id="get-contest-btn">Get Contest</button>
+                <button id="get-contest-btn">Generate Contest</button>
             </div>
 
             <div id="loader" class="hidden">
@@ -49,19 +56,53 @@
                  <p>Fetching data from Codeforces...</p>
             </div>
 
-            <div id="result-container" class="hidden">
-                <div class="result-badge" id="result-badge">Div. 2</div>
-                <h2 id="contest-name">Contest Name</h2>
-                <div class="action-buttons">
-                    <a id="virtual-link" href="#" target="_blank" class="primary-btn">Start Virtual Contest</a>
-                    <a id="contest-link" href="#" target="_blank" class="secondary-btn">View Contest</a>
-                </div>
-            </div>
-
             <div id="error-container" class="hidden">
                 <p id="error-message"></p>
             </div>
-        </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Active Result Hero Card -->
+            <section class="hero-section glass-panel">
+                <div class="empty-state" id="empty-state">
+                    <div class="hero-icon">🏆</div>
+                    <h2>Ready to Compete?</h2>
+                    <p>Enter your handles and generate a contest to get started.</p>
+                </div>
+
+                <div id="result-container" class="hidden">
+                    <div class="result-header">
+                        <div class="badges">
+                            <div class="result-badge" id="result-badge">Div. 2</div>
+                            <div class="result-badge type-badge" id="type-badge">CF</div>
+                        </div>
+                        <div class="duration-badge" id="duration-badge">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                            <span id="contest-duration">2 Hours</span>
+                        </div>
+                    </div>
+                    
+                    <h2 id="contest-name">Contest Name</h2>
+                    
+                    <div class="action-buttons horizontal">
+                        <a id="virtual-link" href="#" target="_blank" class="primary-btn">Start Virtual Contest</a>
+                        <a id="contest-link" href="#" target="_blank" class="secondary-btn">View Problems</a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Contest History -->
+            <section class="history-section glass-panel">
+                <div class="history-header">
+                    <h3>Recent Generations</h3>
+                    <button id="clear-history-btn" class="text-btn hidden">Clear</button>
+                </div>
+                <div class="history-grid" id="history-grid">
+                    <p class="empty-history text-secondary">No history yet in this session.</p>
+                </div>
+            </section>
+        </main>
     </div>
     <script src="script.js"></script>
 </body>
