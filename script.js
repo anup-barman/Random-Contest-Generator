@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultContainer = document.getElementById('result-container');
     const errorContainer = document.getElementById('error-container');
     const errorMessage = document.getElementById('error-message');
-    
+
     const contestNameEl = document.getElementById('contest-name');
     const virtualLinkEl = document.getElementById('virtual-link');
     const contestLinkEl = document.getElementById('contest-link');
@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     getContestBtn.addEventListener('click', handleGetContest);
-    
+
     handleInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             handleGetContest();
@@ -87,28 +87,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const attemptedContests = new Set();
+            const attemptedProblemNames = new Set();
 
             // Fetch users' status/submissions only if handles are provided
             if (handleString) {
                 const handles = handleString.split(',').map(h => h.trim()).filter(h => h);
-                
+
                 if (handles.length > 0) {
                     const fetchUserPromises = handles.map(async (handle) => {
                         const subsRes = await fetch(`https://codeforces.com/api/user.status?handle=${handle}`);
                         const subsData = await subsRes.json();
-                        
+
                         if (subsData.status !== 'OK') {
                             throw new Error(subsData.comment || `Failed to fetch user ${handle}. Double check the handle.`);
                         }
                         return subsData.result;
                     });
-                    
+
                     const allUsersSubmissions = await Promise.all(fetchUserPromises);
-                    
+
                     for (const userSubmissions of allUsersSubmissions) {
                         for (const sub of userSubmissions) {
                             if (sub.contestId) {
                                 attemptedContests.add(sub.contestId);
+                            }
+                            if (sub.problem && sub.problem.name) {
+                                attemptedProblemNames.add(sub.problem.name);
                             }
                         }
                     }
@@ -122,20 +126,38 @@ document.addEventListener('DOMContentLoaded', () => {
             let allContests = [];
 
             const fetchPromises = [];
+            let problemListPromise = null;
             if (fetchNormal) {
                 fetchPromises.push(fetch('https://codeforces.com/api/contest.list?gym=false').then(res => res.json()));
+                // Fetch problemset to map contests to their problems (helps detect shared problems across divisions)
+                problemListPromise = fetch('https://codeforces.com/api/problemset.problems').then(res => res.json());
             }
             if (fetchGym) {
                 fetchPromises.push(fetch('https://codeforces.com/api/contest.list?gym=true').then(res => res.json()));
             }
 
             const results = await Promise.all(fetchPromises);
-            
+            let problemSetData = null;
+            if (problemListPromise) {
+                problemSetData = await problemListPromise;
+            }
+
             for (const data of results) {
                 if (data.status !== 'OK') {
                     throw new Error("Failed to fetch contest list from Codeforces.");
                 }
                 allContests = allContests.concat(data.result);
+            }
+
+            // Map contestId -> list of problem names
+            const contestProblemsMap = new Map();
+            if (problemSetData && problemSetData.status === 'OK' && problemSetData.result.problems) {
+                for (const p of problemSetData.result.problems) {
+                    if (!contestProblemsMap.has(p.contestId)) {
+                        contestProblemsMap.set(p.contestId, []);
+                    }
+                    contestProblemsMap.get(p.contestId).push(p.name);
+                }
             }
 
             // Filter contests
@@ -145,10 +167,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Handle Gym vs Normal logic based on API returns
                 const isGym = c.id >= 100000;
-                
-                if (isGym && fetchGym) return true; 
-                
+
+                if (isGym && fetchGym) return true;
+
                 if (!isGym && fetchNormal) {
+                    // Check if the user has submitted to any problem in this contest (solves shared problem issue)
+                    let hasAttemptedProblem = false;
+                    const cProblems = contestProblemsMap.get(c.id);
+                    if (cProblems) {
+                        for (const pName of cProblems) {
+                            if (attemptedProblemNames.has(pName)) {
+                                hasAttemptedProblem = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (hasAttemptedProblem) return false;
+
                     const type = categorizeContest(c.name);
                     if (divisions.has(type)) return true;
                 }
@@ -169,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Render Result
             contestNameEl.textContent = selectedContest.name;
             resultBadge.textContent = getBadgeText(contestCategory, isSelectedGym);
-            
+
             // Build direct target URLs
             if (isSelectedGym) {
                 virtualLinkEl.href = `https://codeforces.com/gymRegistration/${selectedContest.id}/virtual/true`;
@@ -192,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showError(msg) {
         errorMessage.textContent = msg;
-        
+
         errorContainer.classList.remove('hidden');
         errorContainer.style.animation = 'none';
         errorContainer.offsetHeight; // trigger reflow
