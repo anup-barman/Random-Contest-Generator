@@ -14,20 +14,26 @@
         <!-- Sidebar Navigation & Filters -->
         <aside class="sidebar glass-panel">
             <header class="sidebar-header">
-                <h1>CF Randomizer</h1>
-                <p class="subtitle">Practice unsolved Codeforces contests</p>
+                <h1>Randomizer</h1>
+                <p class="subtitle">Practice unsolved programming contests</p>
             </header>
             
             <div class="input-group">
-                <input type="text" id="handle-input" placeholder="Enter CF handles (comma separated)" autocomplete="off" />
+                <div class="toggle-group platform-group" id="platform-group">
+                    <label class="toggle-btn"><input type="radio" name="platform" value="codeforces" checked> <span>Codeforces</span></label>
+                    <label class="toggle-btn"><input type="radio" name="platform" value="atcoder"> <span>AtCoder</span></label>
+                    <label class="toggle-btn"><input type="radio" name="platform" value="codechef"> <span>CodeChef</span></label>
+                </div>
+
+                <input type="text" id="handle-input" placeholder="Enter handles (comma separated)" autocomplete="off" />
                 
                 <div id="user-profiles-container" class="user-profiles hidden">
                     <!-- Dynamic user profile widgets will be injected here -->
                 </div>
 
                 <div class="filters-section">
-                    <div class="filter-row">
-                        <span class="filter-label">Source</span>
+                    <div id="cf-source-filter" class="filter-row custom-collapse">
+                        <span class="filter-label">CF Source</span>
                         <div class="toggle-group" id="source-group">
                             <label class="toggle-btn"><input type="radio" name="source" value="normal" checked> <span>Normal</span></label>
                             <label class="toggle-btn"><input type="radio" name="source" value="gym"> <span>Gym</span></label>
@@ -35,15 +41,32 @@
                         </div>
                     </div>
 
-                    <div id="normal-filters" class="filter-row custom-collapse">
-                        <span class="filter-label">Divisions</span>
-                        <div class="chip-group" id="division-group">
+                    <div id="division-filters" class="filter-row custom-collapse">
+                        <span class="filter-label" id="division-label">CF Divisions</span>
+                        
+                        <div class="chip-group" id="cf-division-group">
                             <label class="chip"><input type="checkbox" value="div1" checked> <span>Div. 1</span></label>
                             <label class="chip"><input type="checkbox" value="div2" checked> <span>Div. 2</span></label>
                             <label class="chip"><input type="checkbox" value="div3" checked> <span>Div. 3</span></label>
                             <label class="chip"><input type="checkbox" value="div4" checked> <span>Div. 4</span></label>
                             <label class="chip"><input type="checkbox" value="edu" checked> <span>Edu</span></label>
                             <label class="chip"><input type="checkbox" value="global" checked> <span>Global</span></label>
+                            <label class="chip"><input type="checkbox" value="other" checked> <span>Other</span></label>
+                        </div>
+
+                        <div class="chip-group hidden" id="ac-division-group">
+                            <label class="chip"><input type="checkbox" value="abc" checked> <span>Beginner (ABC)</span></label>
+                            <label class="chip"><input type="checkbox" value="arc" checked> <span>Regular (ARC)</span></label>
+                            <label class="chip"><input type="checkbox" value="agc" checked> <span>Grand (AGC)</span></label>
+                            <label class="chip"><input type="checkbox" value="ahc" checked> <span>Heuristic (AHC)</span></label>
+                            <label class="chip"><input type="checkbox" value="other" checked> <span>Other</span></label>
+                        </div>
+
+                        <div class="chip-group hidden" id="cc-division-group">
+                            <label class="chip"><input type="checkbox" value="starters" checked> <span>Starters</span></label>
+                            <label class="chip"><input type="checkbox" value="lunchtime" checked> <span>Lunchtime</span></label>
+                            <label class="chip"><input type="checkbox" value="cookoff" checked> <span>Cook-Off</span></label>
+                            <label class="chip"><input type="checkbox" value="long" checked> <span>Long</span></label>
                             <label class="chip"><input type="checkbox" value="other" checked> <span>Other</span></label>
                         </div>
                     </div>
@@ -68,7 +91,7 @@
 
             <div id="loader" class="hidden">
                  <div class="spinner"></div>
-                 <p>Fetching data from Codeforces...</p>
+                 <p id="loader-text">Fetching data...</p>
             </div>
 
             <div id="error-container" class="hidden">

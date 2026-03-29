@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const handleInput = document.getElementById('handle-input');
     const getContestBtn = document.getElementById('get-contest-btn');
     const loader = document.getElementById('loader');
+    const loaderText = document.getElementById('loader-text');
     
     // Result elements
     const emptyState = document.getElementById('empty-state');
@@ -23,33 +24,77 @@ document.addEventListener('DOMContentLoaded', () => {
     const errorMessage = document.getElementById('error-message');
 
     // Filters
+    const platformRadios = document.getElementsByName('platform');
     const sourceGroup = document.getElementsByName('source');
-    const normalFilters = document.getElementById('normal-filters');
-    const divisionGroup = document.getElementById('division-group');
+    const cfSourceFilter = document.getElementById('cf-source-filter');
+    const divisionFiltersDiv = document.getElementById('division-filters');
+    const divisionLabel = document.getElementById('division-label');
+    
+    const cfDivisionGroup = document.getElementById('cf-division-group');
+    const acDivisionGroup = document.getElementById('ac-division-group');
+    const ccDivisionGroup = document.getElementById('cc-division-group');
     const recencyFilter = document.getElementById('recency-filter');
 
     let contestHistory = [];
     let lastFetchedHandles = "";
+    let lastFetchedPlatform = "";
 
-    // Handle normal filters visibility
+    function getSelectedPlatform() {
+        for (const radio of platformRadios) {
+            if (radio.checked) return radio.value;
+        }
+        return 'codeforces';
+    }
+
+    // Platform UI Selection Logic
+    platformRadios.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            const platform = e.target.value;
+            
+            // Hide all division groups
+            cfDivisionGroup.classList.add('hidden');
+            acDivisionGroup.classList.add('hidden');
+            ccDivisionGroup.classList.add('hidden');
+            
+            // Hide CF specific source filter by default
+            cfSourceFilter.classList.add('collapsed');
+            
+            if (platform === 'codeforces') {
+                cfDivisionGroup.classList.remove('hidden');
+                cfSourceFilter.classList.remove('collapsed');
+                divisionLabel.textContent = "CF Divisions";
+            } else if (platform === 'atcoder') {
+                acDivisionGroup.classList.remove('hidden');
+                divisionLabel.textContent = "AtCoder Types";
+            } else if (platform === 'codechef') {
+                ccDivisionGroup.classList.remove('hidden');
+                divisionLabel.textContent = "CodeChef Categories";
+            }
+            
+            // Trigger profile fetch again if handle is present
+            if (handleInput.value.trim() !== '') {
+                lastFetchedHandles = ""; // force fetch
+                fetchUserProfiles();
+            }
+        });
+    });
+
+    // Handle CF Gym collapse
     sourceGroup.forEach(radio => {
         radio.addEventListener('change', (e) => {
-            if (e.target.value === 'gym') {
-                normalFilters.classList.add('collapsed');
-            } else {
-                normalFilters.classList.remove('collapsed');
+            const platform = getSelectedPlatform();
+            if (platform === 'codeforces' && e.target.value === 'gym') {
+                divisionFiltersDiv.classList.add('collapsed');
+            } else if (platform === 'codeforces') {
+                divisionFiltersDiv.classList.remove('collapsed');
             }
         });
     });
 
     getContestBtn.addEventListener('click', handleGetContest);
-
     handleInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            handleGetContest();
-        }
+        if (e.key === 'Enter') handleGetContest();
     });
-
     handleInput.addEventListener('blur', fetchUserProfiles);
 
     clearHistoryBtn.addEventListener('click', () => {
@@ -59,6 +104,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function fetchUserProfiles() {
         const handleString = handleInput.value.trim();
+        const platform = getSelectedPlatform();
+        
         if (!handleString) {
             userProfilesContainer.classList.add('hidden');
             userProfilesContainer.innerHTML = '';
@@ -66,28 +113,49 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Prevent redundant fetching if handles haven't changed
-        if (handleString === lastFetchedHandles) return;
+        if (handleString === lastFetchedHandles && platform === lastFetchedPlatform) return;
         lastFetchedHandles = handleString;
+        lastFetchedPlatform = platform;
 
-        const handles = handleString.split(',').map(h => h.trim()).filter(h => h);
-        if (handles.length === 0) return;
+        userProfilesContainer.innerHTML = '';
 
-        try {
-            const res = await fetch(`https://codeforces.com/api/user.info?handles=${handles.join(';')}`);
-            const data = await res.json();
-
-            if (data.status === 'OK') {
-                renderUserProfiles(data.result);
-            } else {
-                userProfilesContainer.classList.add('hidden');
-            }
-        } catch(err) {
-            // Ignore fetch errors for visual profiles
+        if (platform === 'codeforces') {
+            const handles = handleString.split(',').map(h => h.trim()).filter(h => h);
+            try {
+                const res = await fetch(`https://codeforces.com/api/user.info?handles=${handles.join(';')}`);
+                const data = await res.json();
+                if (data.status === 'OK') renderCodeforcesProfiles(data.result);
+                else userProfilesContainer.classList.add('hidden');
+            } catch(err) { /* ignore */ }
+        } else {
+             const handles = handleString.split(',').map(h => h.trim()).filter(h => h);
+             if (handles.length > 0) {
+                 renderGenericProfiles(handles);
+             } else {
+                 userProfilesContainer.classList.add('hidden');
+             }
         }
     }
 
-    function renderUserProfiles(users) {
+    function renderGenericProfiles(handles) {
+        userProfilesContainer.innerHTML = '';
+        handles.forEach(handle => {
+            const card = document.createElement('div');
+            card.className = 'user-profile-card';
+            const initial = handle.charAt(0).toUpperCase();
+            card.innerHTML = `
+                <div class="user-avatar" style="display:flex; justify-content:center; align-items:center; background:#334155; font-weight:bold; color:white; font-size:1.2rem;">${initial}</div>
+                <div class="user-info">
+                    <span class="user-handle" style="color: var(--text-primary)">${handle}</span>
+                    <span class="user-rating" style="text-transform: capitalize;">${getSelectedPlatform()} User</span>
+                </div>
+            `;
+            userProfilesContainer.appendChild(card);
+        });
+        userProfilesContainer.classList.remove('hidden');
+    }
+
+    function renderCodeforcesProfiles(users) {
         userProfilesContainer.innerHTML = '';
         users.forEach(user => {
             const card = document.createElement('div');
@@ -96,14 +164,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const imgUrl = user.titlePhoto || user.avatar || 'https://userpic.codeforces.org/no-avatar.jpg';
             const rating = user.rating ? `${user.rating} (${user.rank || 'Unrated'})` : 'Unrated';
             
-            // Color based on standard CF rating colors approximate
             let color = 'var(--text-secondary)';
-            if (user.rating >= 2400) color = '#ff3333'; // Red
-            else if (user.rating >= 2100) color = '#ff8c00'; // Orange
-            else if (user.rating >= 1900) color = '#aa00aa'; // Violet
-            else if (user.rating >= 1600) color = '#0000ff'; // Blue
-            else if (user.rating >= 1400) color = '#03a89e'; // Cyan
-            else if (user.rating >= 1200) color = '#008000'; // Green
+            if (user.rating >= 2400) color = '#ff3333';
+            else if (user.rating >= 2100) color = '#ff8c00';
+            else if (user.rating >= 1900) color = '#aa00aa';
+            else if (user.rating >= 1600) color = '#0000ff';
+            else if (user.rating >= 1400) color = '#03a89e';
+            else if (user.rating >= 1200) color = '#008000';
 
             card.innerHTML = `
                 <img src="${imgUrl}" alt="${user.handle}" class="user-avatar" onerror="this.src='https://userpic.codeforces.org/no-avatar.jpg'" />
@@ -117,39 +184,14 @@ document.addEventListener('DOMContentLoaded', () => {
         userProfilesContainer.classList.remove('hidden');
     }
 
-    function getSelectedSource() {
-        for (const radio of sourceGroup) {
-            if (radio.checked) return radio.value;
-        }
-        return 'normal';
-    }
-
-    function getSelectedDivisions() {
-        const checkboxes = divisionGroup.querySelectorAll('input[type="checkbox"]');
+    function getSelectedDivisions(groupId) {
+        const group = document.getElementById(groupId);
+        const checkboxes = group.querySelectorAll('input[type="checkbox"]');
         const selected = new Set();
         checkboxes.forEach(cb => {
             if (cb.checked) selected.add(cb.value);
         });
         return selected;
-    }
-
-    function categorizeContest(name) {
-        if (name.includes('Div. 1')) return 'div1';
-        if (name.includes('Div. 2')) return 'div2';
-        if (name.includes('Div. 3')) return 'div3';
-        if (name.includes('Div. 4')) return 'div4';
-        if (name.includes('Educational')) return 'edu';
-        if (name.includes('Global')) return 'global';
-        return 'other';
-    }
-
-    function getBadgeText(type, isGym) {
-        if (isGym) return "Gym";
-        const map = {
-            'div1': 'Div. 1', 'div2': 'Div. 2', 'div3': 'Div. 3', 'div4': 'Div. 4',
-            'edu': 'Educational', 'global': 'Global', 'other': 'Other'
-        };
-        return map[type] || 'Contest';
     }
 
     function formatDuration(seconds) {
@@ -162,189 +204,336 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleGetContest() {
+        const platform = getSelectedPlatform();
         const handleString = handleInput.value.trim();
-        const source = getSelectedSource();
-        const divisions = getSelectedDivisions();
         const recencyVal = recencyFilter.value;
+        const cutoffTime = getCutoffTime(recencyVal);
 
-        if (source !== 'gym' && divisions.size === 0) {
-            showError("Please select at least one contest division.");
-            return;
-        }
-
-        if (handleString !== lastFetchedHandles) {
+        if (handleString !== lastFetchedHandles || platform !== lastFetchedPlatform) {
             fetchUserProfiles();
         }
 
-        // Reset UI Context
         hideError();
         emptyState.classList.add('hidden');
         resultContainer.classList.add('hidden');
         loader.classList.remove('hidden');
         getContestBtn.disabled = true;
 
+        let platformName = platform === 'codeforces' ? 'Codeforces' : platform === 'atcoder' ? 'AtCoder' : 'CodeChef';
+        loaderText.textContent = `Fetching data from ${platformName}...`;
+
         try {
-            const attemptedContests = new Set();
-            const attemptedProblemNames = new Set();
-
-            if (handleString) {
-                const handles = handleString.split(',').map(h => h.trim()).filter(h => h);
-
-                if (handles.length > 0) {
-                    const fetchUserPromises = handles.map(async (handle) => {
-                        const subsRes = await fetch(`https://codeforces.com/api/user.status?handle=${handle}`);
-                        const subsData = await subsRes.json();
-
-                        if (subsData.status !== 'OK') {
-                            throw new Error(subsData.comment || `Failed to fetch user ${handle}. Double check the handle.`);
-                        }
-                        return subsData.result;
-                    });
-
-                    const allUsersSubmissions = await Promise.all(fetchUserPromises);
-
-                    for (const userSubmissions of allUsersSubmissions) {
-                        for (const sub of userSubmissions) {
-                            if (sub.contestId) {
-                                attemptedContests.add(sub.contestId);
-                            }
-                            if (sub.problem && sub.problem.name) {
-                                attemptedProblemNames.add(sub.problem.name);
-                            }
-                        }
-                    }
-                }
+            const handles = handleString.split(',').map(h => h.trim()).filter(h => h);
+            
+            if (platform === 'codeforces') {
+                await fetchCodeforcesContest(handles, cutoffTime);
+            } else if (platform === 'atcoder') {
+                await fetchAtcoderContest(handles, cutoffTime);
+            } else if (platform === 'codechef') {
+                await fetchCodechefContest(handles, cutoffTime);
             }
-
-            const fetchGym = source === 'gym' || source === 'both';
-            const fetchNormal = source === 'normal' || source === 'both';
-
-            let allContests = [];
-            const fetchPromises = [];
-            let problemListPromise = null;
-
-            if (fetchNormal) {
-                fetchPromises.push(fetch('https://codeforces.com/api/contest.list?gym=false').then(res => res.json()));
-                problemListPromise = fetch('https://codeforces.com/api/problemset.problems').then(res => res.json());
-            }
-            if (fetchGym) {
-                fetchPromises.push(fetch('https://codeforces.com/api/contest.list?gym=true').then(res => res.json()));
-            }
-
-            const results = await Promise.all(fetchPromises);
-            let problemSetData = null;
-            if (problemListPromise) {
-                problemSetData = await problemListPromise;
-            }
-
-            for (const data of results) {
-                if (data.status !== 'OK') {
-                    throw new Error("Failed to fetch contest list from Codeforces.");
-                }
-                allContests = allContests.concat(data.result);
-            }
-
-            const contestProblemsMap = new Map();
-            if (problemSetData && problemSetData.status === 'OK' && problemSetData.result.problems) {
-                for (const p of problemSetData.result.problems) {
-                    if (!contestProblemsMap.has(p.contestId)) {
-                        contestProblemsMap.set(p.contestId, []);
-                    }
-                    contestProblemsMap.get(p.contestId).push(p.name);
-                }
-            }
-
-            const validContests = allContests.filter(c => {
-                if (c.phase !== 'FINISHED') return false;
-                if (attemptedContests.has(c.id)) return false;
-
-                if (recencyVal !== 'all' && c.startTimeSeconds) {
-                    const oneYearInSeconds = 365.25 * 24 * 60 * 60;
-                    const cutoffTime = (Date.now() / 1000) - (parseFloat(recencyVal) * oneYearInSeconds);
-                    if (c.startTimeSeconds < cutoffTime) return false;
-                }
-
-                const isGym = c.id >= 100000;
-
-                if (isGym && fetchGym) return true;
-
-                if (!isGym && fetchNormal) {
-                    let hasAttemptedProblem = false;
-                    const cProblems = contestProblemsMap.get(c.id);
-                    if (cProblems) {
-                        for (const pName of cProblems) {
-                            if (attemptedProblemNames.has(pName)) {
-                                hasAttemptedProblem = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (hasAttemptedProblem) return false;
-
-                    const type = categorizeContest(c.name);
-                    if (divisions.has(type)) return true;
-                }
-
-                return false;
-            });
-
-            if (validContests.length === 0) {
-                throw new Error("No contests found matching your criteria! Try broadening your filters.");
-            }
-
-            const randomIndex = Math.floor(Math.random() * validContests.length);
-            const selectedContest = validContests[randomIndex];
-            const isSelectedGym = selectedContest.id >= 100000;
-            const contestCategory = isSelectedGym ? 'gym' : categorizeContest(selectedContest.name);
-
-            renderContest(selectedContest, contestCategory, isSelectedGym);
-            addToHistory(selectedContest, contestCategory, isSelectedGym);
-
-            loader.classList.add('hidden');
-            resultContainer.classList.remove('hidden');
-
         } catch (err) {
             loader.classList.add('hidden');
             emptyState.classList.remove('hidden');
-            showError(err.message || "An unexpected error occurred. Please try again.");
+            showError(err.message || "An unexpected error occurred.");
         } finally {
             getContestBtn.disabled = false;
         }
     }
 
-    function renderContest(contest, category, isGym) {
-        contestNameEl.textContent = contest.name;
-        resultBadge.textContent = getBadgeText(category, isGym);
-        
-        typeBadge.textContent = contest.type || (isGym ? 'GYM' : 'CF');
-        durationBadge.textContent = formatDuration(contest.durationSeconds);
-
-        if (isGym) {
-            virtualLinkEl.href = `https://codeforces.com/gymRegistration/${contest.id}/virtual/true`;
-            contestLinkEl.href = `https://codeforces.com/gym/${contest.id}`;
-        } else {
-            virtualLinkEl.href = `https://codeforces.com/contestRegistration/${contest.id}/virtual/true`;
-            contestLinkEl.href = `https://codeforces.com/contest/${contest.id}`;
-        }
+    function getCutoffTime(recencyVal) {
+        if (recencyVal === 'all') return 0;
+        const oneYearInSeconds = 365.25 * 24 * 60 * 60;
+        return (Date.now() / 1000) - (parseFloat(recencyVal) * oneYearInSeconds);
     }
 
-    function addToHistory(contest, category, isGym) {
-        if (contestHistory.length > 0 && contestHistory[0].id === contest.id) {
-            return;
+    // ========== CODEFORCES LOGIC ==========
+    
+    function categorizeCFContest(name) {
+        if (name.includes('Div. 1')) return 'div1';
+        if (name.includes('Div. 2')) return 'div2';
+        if (name.includes('Div. 3')) return 'div3';
+        if (name.includes('Div. 4')) return 'div4';
+        if (name.includes('Educational')) return 'edu';
+        if (name.includes('Global')) return 'global';
+        return 'other';
+    }
+
+    async function fetchCodeforcesContest(handles, cutoffTime) {
+        let source = 'normal';
+        for (const radio of sourceGroup) if (radio.checked) source = radio.value;
+        const divisions = getSelectedDivisions('cf-division-group');
+        
+        if (source !== 'gym' && divisions.size === 0) {
+            throw new Error("Please select at least one Codeforces contest division.");
         }
 
+        const attemptedContests = new Set();
+        const attemptedProblemNames = new Set();
+        
+        if (handles.length > 0) {
+            const fetchUserPromises = handles.map(async (handle) => {
+                const subsRes = await fetch(`https://codeforces.com/api/user.status?handle=${handle}`);
+                const subsData = await subsRes.json();
+                if (subsData.status !== 'OK') throw new Error(subsData.comment || `Failed to fetch user ${handle}.`);
+                return subsData.result;
+            });
+
+            const allUsersSubmissions = await Promise.all(fetchUserPromises);
+            for (const userSubmissions of allUsersSubmissions) {
+                for (const sub of userSubmissions) {
+                    if (sub.contestId) attemptedContests.add(sub.contestId);
+                    if (sub.problem && sub.problem.name) attemptedProblemNames.add(sub.problem.name);
+                }
+            }
+        }
+
+        const fetchGym = source === 'gym' || source === 'both';
+        const fetchNormal = source === 'normal' || source === 'both';
+
+        let allContests = [];
+        const fetchPromises = [];
+        let problemListPromise = null;
+
+        if (fetchNormal) {
+            fetchPromises.push(fetch('https://codeforces.com/api/contest.list?gym=false').then(r => r.json()));
+            problemListPromise = fetch('https://codeforces.com/api/problemset.problems').then(r => r.json());
+        }
+        if (fetchGym) fetchPromises.push(fetch('https://codeforces.com/api/contest.list?gym=true').then(r => r.json()));
+
+        const results = await Promise.all(fetchPromises);
+        let problemSetData = problemListPromise ? await problemListPromise : null;
+
+        for (const data of results) {
+            if (data.status !== 'OK') throw new Error("Failed to fetch contest list from Codeforces.");
+            allContests = allContests.concat(data.result);
+        }
+
+        const contestProblemsMap = new Map();
+        if (problemSetData && problemSetData.status === 'OK' && problemSetData.result.problems) {
+            for (const p of problemSetData.result.problems) {
+                if (!contestProblemsMap.has(p.contestId)) contestProblemsMap.set(p.contestId, []);
+                contestProblemsMap.get(p.contestId).push(p.name);
+            }
+        }
+
+        const validContests = allContests.filter(c => {
+            if (c.phase !== 'FINISHED') return false;
+            if (attemptedContests.has(c.id)) return false;
+            if (c.startTimeSeconds < cutoffTime) return false;
+
+            const isGym = c.id >= 100000;
+            if (isGym && fetchGym) return true;
+
+            if (!isGym && fetchNormal) {
+                let hasAttemptedProblem = false;
+                const cProblems = contestProblemsMap.get(c.id);
+                if (cProblems) {
+                    for (const pName of cProblems) {
+                        if (attemptedProblemNames.has(pName)) {
+                            hasAttemptedProblem = true;
+                            break;
+                        }
+                    }
+                }
+                if (hasAttemptedProblem) return false;
+
+                const type = categorizeCFContest(c.name);
+                if (divisions.has(type)) return true;
+            }
+            return false;
+        });
+
+        if (validContests.length === 0) throw new Error("No Codeforces contests found matching your criteria.");
+
+        const randomContest = validContests[Math.floor(Math.random() * validContests.length)];
+        const isSelectedGym = randomContest.id >= 100000;
+        const contestCategory = isSelectedGym ? 'gym' : categorizeCFContest(randomContest.name);
+
+        const badgeText = isSelectedGym ? "Gym" : ({
+            'div1': 'Div. 1', 'div2': 'Div. 2', 'div3': 'Div. 3', 'div4': 'Div. 4',
+            'edu': 'Educational', 'global': 'Global', 'other': 'Other'
+        }[contestCategory] || 'Contest');
+
+        const vLink = isSelectedGym 
+            ? `https://codeforces.com/gymRegistration/${randomContest.id}/virtual/true`
+            : `https://codeforces.com/contestRegistration/${randomContest.id}/virtual/true`;
+        
+        const cLink = isSelectedGym 
+            ? `https://codeforces.com/gym/${randomContest.id}` 
+            : `https://codeforces.com/contest/${randomContest.id}`;
+
+        displayResult(randomContest.name, badgeText, randomContest.type || (isSelectedGym ? 'GYM' : 'CF'), 'type-codeforces', randomContest.durationSeconds, vLink, cLink, 'codeforces');
+    }
+
+    // ========== ATCODER LOGIC ==========
+    
+    function categorizeAtCoderContest(id) {
+        if (!id) return 'other';
+        if (id.startsWith('abc')) return 'abc';
+        if (id.startsWith('arc')) return 'arc';
+        if (id.startsWith('agc')) return 'agc';
+        if (id.startsWith('ahc')) return 'ahc';
+        return 'other';
+    }
+
+    async function fetchAtcoderContest(handles, cutoffTime) {
+        const divisions = getSelectedDivisions('ac-division-group');
+        if (divisions.size === 0) throw new Error("Please select at least one AtCoder type.");
+
+        const attemptedContests = new Set();
+
+        if (handles.length > 0) {
+            const fetchUserPromises = handles.map(async (handle) => {
+                const res = await fetch(`https://kenkoooo.com/atcoder/atcoder-api/v3/user/submissions?user=${handle}&from_second=0`);
+                if (!res.ok) throw new Error(`Failed to fetch user ${handle} from Kenkoooo API.`);
+                return await res.json();
+            });
+
+            const allSubs = await Promise.all(fetchUserPromises);
+            for (const subs of allSubs) {
+                for (const sub of subs) {
+                    if (sub.contest_id) attemptedContests.add(sub.contest_id);
+                }
+            }
+        }
+
+        const res = await fetch('https://kenkoooo.com/atcoder/resources/contests.json');
+        if (!res.ok) throw new Error("Failed to fetch AtCoder contests from Kenkoooo.");
+        const allContests = await res.json();
+
+        const validContests = allContests.filter(c => {
+            if (attemptedContests.has(c.id)) return false;
+            
+            if (cutoffTime > 0 && c.start_epoch_second < cutoffTime) return false;
+            if (c.start_epoch_second > (Date.now() / 1000)) return false;
+
+            const type = categorizeAtCoderContest(c.id);
+            if (divisions.has(type)) return true;
+
+            return false;
+        });
+
+        if (validContests.length === 0) throw new Error("No AtCoder contests found matching your criteria.");
+
+        const randomContest = validContests[Math.floor(Math.random() * validContests.length)];
+        const category = categorizeAtCoderContest(randomContest.id);
+        const map = { 'abc': 'Beginner', 'arc': 'Regular', 'agc': 'Grand', 'ahc': 'Heuristic', 'other': 'Contest' };
+
+        const cLink = `https://atcoder.jp/contests/${randomContest.id}`;
+        
+        displayResult(randomContest.title, map[category] || 'AtCoder', 'ATCODER', 'type-atcoder', randomContest.duration_second, cLink, cLink, 'atcoder');
+    }
+
+    // ========== CODECHEF LOGIC ==========
+
+    function categorizeCodeChefContest(code, name) {
+        if(!code) code = '';
+        if(!name) name = '';
+        code = code.toUpperCase();
+        name = name.toUpperCase();
+        if (name.includes('STARTERS') || code.includes('START')) return 'starters';
+        if (name.includes('LTIME') || code.includes('LTIME') || name.includes('LUNCH')) return 'lunchtime';
+        if (name.includes('COOK') || code.includes('COOK')) return 'cookoff';
+        if (name.includes('LONG') || code.includes('LONG')) return 'long';
+        return 'other';
+    }
+
+    async function fetchCodechefContest(handles, cutoffTime) {
+        const divisions = getSelectedDivisions('cc-division-group');
+        if (divisions.size === 0) throw new Error("Please select at least one CodeChef category.");
+
+        const attemptedContests = new Set();
+        const corsProxy = 'https://api.allorigins.win/raw?url=';
+
+        if (handles.length > 0) {
+            for (const handle of handles) {
+                try {
+                    const res = await fetch(corsProxy + encodeURIComponent(`https://www.codechef.com/recent/user?user_handle=${handle}`));
+                    if (res.ok) {
+                        const html = await res.text();
+                        const matches = html.matchAll(/href="\/status\/[^/]+,([^/]+)"/g);
+                        for (const match of matches) {
+                            if (match[1]) attemptedContests.add(match[1].toUpperCase());
+                        }
+                    }
+                } catch(e) {
+                    console.error("Codechef user fetch failed for", handle, e);
+                }
+            }
+        }
+
+        const res = await fetch(corsProxy + encodeURIComponent('https://www.codechef.com/api/list/contests/past'));
+        if (!res.ok) throw new Error("Failed to fetch CodeChef contests. The proxy might be unavailable.");
+        const data = await res.json();
+        const allContests = data.contests || [];
+
+        const validContests = allContests.filter(c => {
+            if (!c.contest_code) return false;
+            if (attemptedContests.has(c.contest_code.toUpperCase())) return false;
+            
+            const startTime = new Date(c.contest_start_date_iso || c.contest_start_date).getTime() / 1000;
+            if (startTime < cutoffTime) return false;
+
+            const type = categorizeCodeChefContest(c.contest_code, c.contest_name);
+            if (divisions.has(type)) return true;
+            
+            return false;
+        });
+
+        if (validContests.length === 0) throw new Error("No CodeChef contests found matching your criteria.");
+
+        const randomContest = validContests[Math.floor(Math.random() * validContests.length)];
+        const category = categorizeCodeChefContest(randomContest.contest_code, randomContest.contest_name);
+        const map = { 'starters': 'Starters', 'lunchtime': 'Lunchtime', 'cookoff': 'Cook-Off', 'long': 'Long', 'other': 'Contest' };
+
+        const durationSecs = parseInt(randomContest.contest_duration) * 60;
+        const cLink = `https://www.codechef.com/${randomContest.contest_code}`;
+        
+        displayResult(randomContest.contest_name, map[category] || 'Contest', 'CODECHEF', 'type-codechef', durationSecs, cLink, cLink, 'codechef');
+    }
+
+    // ========== DISPLAY & HISTORY ==========
+
+    function displayResult(name, badgeText, typeText, typeClass, durationSecs, vLink, cLink, platform) {
+        contestNameEl.textContent = name;
+        resultBadge.textContent = badgeText;
+        
+        typeBadge.className = `result-badge type-badge ${typeClass}`;
+        typeBadge.textContent = typeText;
+        durationBadge.textContent = formatDuration(durationSecs);
+
+        virtualLinkEl.href = vLink;
+        if (platform === 'codeforces') {
+            virtualLinkEl.textContent = "Start Virtual Contest";
+            contestLinkEl.classList.remove('hidden');
+        } else {
+            virtualLinkEl.textContent = "Open Contest";
+            // Both point to the same contest page for AtCoder/CodeChef, so hide the secondary button
+            contestLinkEl.classList.add('hidden');
+        }
+        
+        contestLinkEl.href = cLink;
+
+        addToHistory(name, badgeText, typeText, durationSecs, cLink);
+
+        loader.classList.add('hidden');
+        resultContainer.classList.remove('hidden');
+    }
+
+    function addToHistory(name, badgeText, typeText, durationSecs, link) {
+        if (contestHistory.length > 0 && contestHistory[0].name === name) return;
+
         contestHistory.unshift({
-            id: contest.id,
-            name: contest.name,
-            category: category,
-            isGym: isGym,
-            type: contest.type || (isGym ? 'GYM' : 'CF'),
-            duration: formatDuration(contest.durationSeconds),
+            name: name,
+            badge: badgeText,
+            type: typeText,
+            duration: formatDuration(durationSecs),
+            link: link,
             timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
         });
 
         if (contestHistory.length > 10) contestHistory.pop();
-        
         renderHistory();
     }
 
@@ -362,14 +551,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const div = document.createElement('div');
             div.className = 'history-card';
             
-            const badge = getBadgeText(item.category, item.isGym);
-            const link = item.isGym 
-                ? `https://codeforces.com/gym/${item.id}` 
-                : `https://codeforces.com/contest/${item.id}`;
-
             div.innerHTML = `
                 <div class="history-card-header">
-                    <span class="history-type">${badge} &bull; ${item.type}</span>
+                    <span class="history-type">${item.badge} &bull; ${item.type}</span>
                     <span class="text-secondary" style="font-size: 0.8rem">${item.timestamp}</span>
                 </div>
                 <h4>${item.name}</h4>
@@ -378,10 +562,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
             
-            div.addEventListener('click', () => {
-                window.open(link, '_blank');
-            });
-            
+            div.addEventListener('click', () => window.open(item.link, '_blank'));
             historyGrid.appendChild(div);
         });
     }
