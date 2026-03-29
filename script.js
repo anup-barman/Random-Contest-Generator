@@ -339,7 +339,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (validContests.length === 0) throw new Error("No Codeforces contests found matching your criteria.");
 
-        const randomContest = validContests[Math.floor(Math.random() * validContests.length)];
+        const randomArray = new Uint32Array(1);
+        window.crypto.getRandomValues(randomArray);
+        const randomIndex = randomArray[0] % validContests.length;
+        const randomContest = validContests[randomIndex];
         const isSelectedGym = randomContest.id >= 100000;
         const contestCategory = isSelectedGym ? 'gym' : categorizeCFContest(randomContest.name);
 
@@ -409,7 +412,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (validContests.length === 0) throw new Error("No AtCoder contests found matching your criteria.");
 
-        const randomContest = validContests[Math.floor(Math.random() * validContests.length)];
+        const randomArray = new Uint32Array(1);
+        window.crypto.getRandomValues(randomArray);
+        const randomIndex = randomArray[0] % validContests.length;
+        const randomContest = validContests[randomIndex];
         const category = categorizeAtCoderContest(randomContest.id);
         const map = { 'abc': 'Beginner', 'arc': 'Regular', 'agc': 'Grand', 'ahc': 'Heuristic', 'other': 'Contest' };
 

@@ -331,7 +331,7 @@ button#get-contest-btn:disabled {
 
 /* Hero Section */
 .hero-section {
-    flex: 1.5;
+    flex: 1;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -477,7 +477,7 @@ button#get-contest-btn:disabled {
 
 /* History Section */
 .history-section {
-    flex: 1;
+    flex: 1.5;
     display: flex;
     flex-direction: column;
     min-height: 280px;
