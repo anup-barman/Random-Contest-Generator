@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sourceGroup = document.getElementsByName('source');
     const normalFilters = document.getElementById('normal-filters');
     const divisionGroup = document.getElementById('division-group');
+    const recencyFilter = document.getElementById('recency-filter');
 
     let contestHistory = [];
     let lastFetchedHandles = "";
@@ -164,6 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const handleString = handleInput.value.trim();
         const source = getSelectedSource();
         const divisions = getSelectedDivisions();
+        const recencyVal = recencyFilter.value;
 
         if (source !== 'gym' && divisions.size === 0) {
             showError("Please select at least one contest division.");
@@ -255,6 +257,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const validContests = allContests.filter(c => {
                 if (c.phase !== 'FINISHED') return false;
                 if (attemptedContests.has(c.id)) return false;
+
+                if (recencyVal !== 'all' && c.startTimeSeconds) {
+                    const oneYearInSeconds = 365.25 * 24 * 60 * 60;
+                    const cutoffTime = (Date.now() / 1000) - (parseFloat(recencyVal) * oneYearInSeconds);
+                    if (c.startTimeSeconds < cutoffTime) return false;
+                }
 
                 const isGym = c.id >= 100000;
 

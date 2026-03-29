@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Random CF Contest Dashboard</title>
     <meta name="description" content="Generate a random unsolved Codeforces contest for your handle">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -45,6 +46,20 @@
                             <label class="chip"><input type="checkbox" value="global" checked> <span>Global</span></label>
                             <label class="chip"><input type="checkbox" value="other" checked> <span>Other</span></label>
                         </div>
+                    </div>
+
+                    <div class="filter-row">
+                        <span class="filter-label">Recency</span>
+                        <select id="recency-filter" class="custom-select">
+                            <option value="all">Any Time</option>
+                            <option value="0.5">Past 6 Months</option>
+                            <option value="1">Past 1 Year</option>
+                            <option value="2">Past 2 Years</option>
+                            <option value="3">Past 3 Years</option>
+                            <option value="5">Past 5 Years</option>
+                            <option value="7">Past 7 Years</option>
+                            <option value="10">Past 10 Years</option>
+                        </select>
                     </div>
                 </div>
 
