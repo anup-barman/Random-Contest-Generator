@@ -32,7 +32,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const cfDivisionGroup = document.getElementById('cf-division-group');
     const acDivisionGroup = document.getElementById('ac-division-group');
-    const ccDivisionGroup = document.getElementById('cc-division-group');
     const recencyFilter = document.getElementById('recency-filter');
 
     let contestHistory = [];
@@ -54,7 +53,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // Hide all division groups
             cfDivisionGroup.classList.add('hidden');
             acDivisionGroup.classList.add('hidden');
-            ccDivisionGroup.classList.add('hidden');
             
             // Hide CF specific source filter by default
             cfSourceFilter.classList.add('collapsed');
@@ -66,9 +64,6 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (platform === 'atcoder') {
                 acDivisionGroup.classList.remove('hidden');
                 divisionLabel.textContent = "AtCoder Types";
-            } else if (platform === 'codechef') {
-                ccDivisionGroup.classList.remove('hidden');
-                divisionLabel.textContent = "CodeChef Categories";
             }
             
             // Trigger profile fetch again if handle is present
@@ -219,7 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loader.classList.remove('hidden');
         getContestBtn.disabled = true;
 
-        let platformName = platform === 'codeforces' ? 'Codeforces' : platform === 'atcoder' ? 'AtCoder' : 'CodeChef';
+        let platformName = platform === 'codeforces' ? 'Codeforces' : 'AtCoder';
         loaderText.textContent = `Fetching data from ${platformName}...`;
 
         try {
@@ -229,8 +224,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 await fetchCodeforcesContest(handles, cutoffTime);
             } else if (platform === 'atcoder') {
                 await fetchAtcoderContest(handles, cutoffTime);
-            } else if (platform === 'codechef') {
-                await fetchCodechefContest(handles, cutoffTime);
             }
         } catch (err) {
             loader.classList.add('hidden');
@@ -425,73 +418,6 @@ document.addEventListener('DOMContentLoaded', () => {
         displayResult(randomContest.title, map[category] || 'AtCoder', 'ATCODER', 'type-atcoder', randomContest.duration_second, cLink, cLink, 'atcoder');
     }
 
-    // ========== CODECHEF LOGIC ==========
-
-    function categorizeCodeChefContest(code, name) {
-        if(!code) code = '';
-        if(!name) name = '';
-        code = code.toUpperCase();
-        name = name.toUpperCase();
-        if (name.includes('STARTERS') || code.includes('START')) return 'starters';
-        if (name.includes('LTIME') || code.includes('LTIME') || name.includes('LUNCH')) return 'lunchtime';
-        if (name.includes('COOK') || code.includes('COOK')) return 'cookoff';
-        if (name.includes('LONG') || code.includes('LONG')) return 'long';
-        return 'other';
-    }
-
-    async function fetchCodechefContest(handles, cutoffTime) {
-        const divisions = getSelectedDivisions('cc-division-group');
-        if (divisions.size === 0) throw new Error("Please select at least one CodeChef category.");
-
-        const attemptedContests = new Set();
-        const corsProxy = 'https://api.allorigins.win/raw?url=';
-
-        if (handles.length > 0) {
-            for (const handle of handles) {
-                try {
-                    const res = await fetch(corsProxy + encodeURIComponent(`https://www.codechef.com/recent/user?user_handle=${handle}`));
-                    if (res.ok) {
-                        const html = await res.text();
-                        const matches = html.matchAll(/href="\/status\/[^/]+,([^/]+)"/g);
-                        for (const match of matches) {
-                            if (match[1]) attemptedContests.add(match[1].toUpperCase());
-                        }
-                    }
-                } catch(e) {
-                    console.error("Codechef user fetch failed for", handle, e);
-                }
-            }
-        }
-
-        const res = await fetch(corsProxy + encodeURIComponent('https://www.codechef.com/api/list/contests/past'));
-        if (!res.ok) throw new Error("Failed to fetch CodeChef contests. The proxy might be unavailable.");
-        const data = await res.json();
-        const allContests = data.contests || [];
-
-        const validContests = allContests.filter(c => {
-            if (!c.contest_code) return false;
-            if (attemptedContests.has(c.contest_code.toUpperCase())) return false;
-            
-            const startTime = new Date(c.contest_start_date_iso || c.contest_start_date).getTime() / 1000;
-            if (startTime < cutoffTime) return false;
-
-            const type = categorizeCodeChefContest(c.contest_code, c.contest_name);
-            if (divisions.has(type)) return true;
-            
-            return false;
-        });
-
-        if (validContests.length === 0) throw new Error("No CodeChef contests found matching your criteria.");
-
-        const randomContest = validContests[Math.floor(Math.random() * validContests.length)];
-        const category = categorizeCodeChefContest(randomContest.contest_code, randomContest.contest_name);
-        const map = { 'starters': 'Starters', 'lunchtime': 'Lunchtime', 'cookoff': 'Cook-Off', 'long': 'Long', 'other': 'Contest' };
-
-        const durationSecs = parseInt(randomContest.contest_duration) * 60;
-        const cLink = `https://www.codechef.com/${randomContest.contest_code}`;
-        
-        displayResult(randomContest.contest_name, map[category] || 'Contest', 'CODECHEF', 'type-codechef', durationSecs, cLink, cLink, 'codechef');
-    }
 
     // ========== DISPLAY & HISTORY ==========
 
@@ -509,7 +435,7 @@ document.addEventListener('DOMContentLoaded', () => {
             contestLinkEl.classList.remove('hidden');
         } else {
             virtualLinkEl.textContent = "Open Contest";
-            // Both point to the same contest page for AtCoder/CodeChef, so hide the secondary button
+            // Both point to the same contest page for AtCoder, so hide the secondary button
             contestLinkEl.classList.add('hidden');
         }
         
