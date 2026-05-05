@@ -20,7 +20,14 @@
                 <p class="subtitle">Practice unsolved programming contests</p>
             </header>
 
-            <div class="input-group">
+            <div class="tabs-container">
+                <button class="tab-btn active" data-tab="contest">Contest</button>
+                <button class="tab-btn" data-tab="problem">Problems</button>
+            </div>
+
+            <!-- Contest Tab Content -->
+            <div id="contest-tab-content" class="tab-content active">
+                <div class="input-group">
                 <div class="toggle-group platform-group" id="platform-group">
                     <label class="toggle-btn"><input type="radio" name="platform" value="codeforces" checked>
                         <span>Codeforces</span></label>
@@ -90,7 +97,66 @@
                     </div>
                 </div>
 
-                <button id="get-contest-btn">Generate Contest</button>
+                <button id="get-contest-btn" class="generate-btn">Generate Contest</button>
+                </div>
+            </div>
+
+            <!-- Problem Tab Content -->
+            <div id="problem-tab-content" class="tab-content hidden">
+                <div class="input-group">
+                    <div class="toggle-group platform-group" id="problem-platform-group">
+                        <label class="toggle-btn"><input type="radio" name="problem_platform" value="codeforces" checked>
+                            <span>Codeforces</span></label>
+                        <label class="toggle-btn"><input type="radio" name="problem_platform" value="atcoder">
+                            <span>AtCoder</span></label>
+                        <label class="toggle-btn"><input type="radio" name="problem_platform" value="both">
+                            <span>Both</span></label>
+                    </div>
+
+                    <input type="text" id="problem-handle-cf" class="problem-handle-input" placeholder="CF handle(s) (comma separated)" autocomplete="off" />
+                    <input type="text" id="problem-handle-ac" class="problem-handle-input hidden" placeholder="AtCoder handle(s) (comma separated)" autocomplete="off" />
+
+                    <div class="filters-section">
+                        <div class="filter-row">
+                            <span class="filter-label">Number of Problems</span>
+                            <input type="number" id="problem-count" class="custom-number-input" value="5" min="1" max="50" />
+                        </div>
+                        
+                        <div id="problem-cf-rating" class="filter-row custom-collapse">
+                            <span class="filter-label">CF Rating Range</span>
+                            <div class="range-inputs">
+                                <input type="number" id="cf-min-rating" class="custom-number-input" placeholder="Min" min="0" step="100" />
+                                <span class="range-separator">-</span>
+                                <input type="number" id="cf-max-rating" class="custom-number-input" placeholder="Max" min="0" step="100" />
+                            </div>
+                        </div>
+
+                        <div id="problem-ac-rating" class="filter-row custom-collapse hidden">
+                            <span class="filter-label">AtCoder Difficulty</span>
+                            <div class="range-inputs">
+                                <input type="number" id="ac-min-difficulty" class="custom-number-input" placeholder="Min" />
+                                <span class="range-separator">-</span>
+                                <input type="number" id="ac-max-difficulty" class="custom-number-input" placeholder="Max" />
+                            </div>
+                        </div>
+
+                        <div class="filter-row">
+                            <span class="filter-label">Recency</span>
+                            <select id="problem-recency-filter" class="custom-select">
+                                <option value="all">Any Time</option>
+                                <option value="0.5">Past 6 Months</option>
+                                <option value="1">Past 1 Year</option>
+                                <option value="2">Past 2 Years</option>
+                                <option value="3">Past 3 Years</option>
+                                <option value="5">Past 5 Years</option>
+                                <option value="7">Past 7 Years</option>
+                                <option value="10">Past 10 Years</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button id="get-problems-btn" class="generate-btn">Fetch Problems</button>
+                </div>
             </div>
 
             <div id="loader" class="hidden">
@@ -106,7 +172,7 @@
         <!-- Main Content Area -->
         <main class="main-content">
             <!-- Active Result Hero Card -->
-            <section class="hero-section glass-panel">
+            <section class="hero-section glass-panel" id="main-hero-section">
                 <div class="empty-state" id="empty-state">
                     <div class="hero-icon">🏆</div>
                     <h2>Ready to Compete?</h2>
@@ -139,13 +205,28 @@
             </section>
 
             <!-- Contest History -->
-            <section class="history-section glass-panel">
+            <section class="history-section glass-panel" id="main-history-section">
                 <div class="history-header">
                     <h3>Recent Generations</h3>
                     <button id="clear-history-btn" class="text-btn hidden">Clear</button>
                 </div>
                 <div class="history-grid" id="history-grid">
                     <p class="empty-history text-secondary">No history yet in this session.</p>
+                </div>
+            </section>
+
+            <!-- Problem Results Section -->
+            <section class="problems-section glass-panel hidden" id="main-problems-section">
+                <div class="history-header">
+                    <h3>Fetched Problems</h3>
+                    <button id="copy-vjudge-btn" class="secondary-btn small-btn hidden" style="padding: 0.6rem 1rem; font-size: 0.9rem;">Copy VJudge Format</button>
+                </div>
+                <div id="problems-grid" class="problems-grid">
+                    <div class="empty-state" id="problems-empty-state">
+                        <div class="hero-icon">🧩</div>
+                        <h2>Find Unsolved Problems</h2>
+                        <p>Enter handles and get a curated list of random unsolved problems.</p>
+                    </div>
                 </div>
             </section>
         </main>

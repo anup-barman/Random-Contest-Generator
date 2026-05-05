@@ -91,6 +91,50 @@ h1 {
     font-weight: 300;
 }
 
+/* Tabs */
+.tabs-container {
+    display: flex;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 1.5rem;
+}
+
+.tab-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 0.8rem;
+    font-size: 1rem;
+    font-weight: 500;
+    font-family: 'Outfit', sans-serif;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.tab-btn:hover {
+    color: var(--text-primary);
+}
+
+.tab-btn.active {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.tab-content {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+}
+
+.tab-content.active {
+    display: flex;
+    animation: fadeIn 0.4s ease;
+}
+
 /* Input & Profiles */
 .input-group {
     display: flex;
@@ -100,7 +144,7 @@ h1 {
     flex: 1;
 }
 
-input[type="text"] {
+input[type="text"], input[type="number"].custom-number-input {
     width: 100%;
     padding: 1.2rem 1.5rem;
     border-radius: 14px;
@@ -113,14 +157,31 @@ input[type="text"] {
     transition: all 0.3s ease;
 }
 
-input[type="text"]::placeholder {
+input[type="text"]::placeholder, input[type="number"].custom-number-input::placeholder {
     color: #475569;
 }
 
-input[type="text"]:focus {
+input[type="text"]:focus, input[type="number"].custom-number-input:focus {
     border-color: var(--accent-1);
     box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
     background: rgba(15, 23, 42, 0.6);
+}
+
+.range-inputs {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.range-inputs input {
+    padding: 0.8rem 1rem;
+    font-size: 0.95rem;
+    text-align: center;
+}
+
+.range-separator {
+    color: var(--text-secondary);
+    font-weight: bold;
 }
 
 .user-profiles {
@@ -291,7 +352,7 @@ input[type="text"]:focus {
 }
 
 /* Generate Button */
-button#get-contest-btn {
+button.generate-btn {
     padding: 1.2rem 1.5rem;
     border-radius: 14px;
     border: none;
@@ -307,14 +368,14 @@ button#get-contest-btn {
     width: 100%;
 }
 
-button#get-contest-btn:hover {
+button.generate-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 15px 25px -5px rgba(59, 130, 246, 0.5);
     filter: brightness(1.1);
 }
 
-button#get-contest-btn:active { transform: translateY(1px); }
-button#get-contest-btn:disabled {
+button.generate-btn:active { transform: translateY(1px); }
+button.generate-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
@@ -572,6 +633,103 @@ button#get-contest-btn:disabled {
 
 .text-secondary {
     color: var(--text-secondary);
+}
+
+/* Problems Section */
+.problems-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.problems-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.2rem;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.problem-card {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    animation: slideUp 0.4s ease;
+}
+
+.problem-card:hover {
+    transform: translateY(-3px);
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 10px 20px -5px rgba(0,0,0,0.3);
+}
+
+.problem-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.problem-id {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-family: monospace;
+    background: rgba(255,255,255,0.05);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+}
+
+.problem-name {
+    font-size: 1.15rem;
+    font-weight: 600;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.problem-rating {
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.rating-icon {
+    font-size: 1.1rem;
+}
+
+.problem-footer {
+    margin-top: auto;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.problem-solve-btn {
+    background: var(--success-bg);
+    color: white;
+    text-decoration: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.problem-solve-btn:hover {
+    filter: brightness(1.1);
+    transform: translateY(-2px);
 }
 
 /* Loader & Error */

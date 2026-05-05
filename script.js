@@ -34,7 +34,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const acDivisionGroup = document.getElementById('ac-division-group');
     const recencyFilter = document.getElementById('recency-filter');
 
+    // Tabs
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+    const heroSection = document.getElementById('main-hero-section');
+    const historySection = document.getElementById('main-history-section');
+    const problemsSection = document.getElementById('main-problems-section');
+
+    // Problem Fetcher Elements
+    const getProblemsBtn = document.getElementById('get-problems-btn');
+    const problemPlatformRadios = document.getElementsByName('problem_platform');
+    const problemHandleCf = document.getElementById('problem-handle-cf');
+    const problemHandleAc = document.getElementById('problem-handle-ac');
+    const problemCount = document.getElementById('problem-count');
+    const cfMinRating = document.getElementById('cf-min-rating');
+    const cfMaxRating = document.getElementById('cf-max-rating');
+    const acMinDifficulty = document.getElementById('ac-min-difficulty');
+    const acMaxDifficulty = document.getElementById('ac-max-difficulty');
+    const problemCfRatingDiv = document.getElementById('problem-cf-rating');
+    const problemAcRatingDiv = document.getElementById('problem-ac-rating');
+    const problemRecencyFilter = document.getElementById('problem-recency-filter');
+    const problemsGrid = document.getElementById('problems-grid');
+    const problemsEmptyState = document.getElementById('problems-empty-state');
+    const copyVjudgeBtn = document.getElementById('copy-vjudge-btn');
+
     let contestHistory = [];
+    let fetchedProblemsList = [];
     let lastFetchedHandles = "";
     let lastFetchedPlatform = "";
 
@@ -45,7 +70,42 @@ document.addEventListener('DOMContentLoaded', () => {
         return 'codeforces';
     }
 
-    // Platform UI Selection Logic
+    function getSelectedProblemPlatform() {
+        for (const radio of problemPlatformRadios) {
+            if (radio.checked) return radio.value;
+        }
+        return 'codeforces';
+    }
+
+    // Tab Logic
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            tabBtns.forEach(b => b.classList.remove('active'));
+            tabContents.forEach(c => {
+                c.classList.remove('active');
+                c.classList.add('hidden');
+            });
+            btn.classList.add('active');
+            
+            const tabId = btn.getAttribute('data-tab');
+            const activeTabContent = document.getElementById(`${tabId}-tab-content`);
+            activeTabContent.classList.add('active');
+            activeTabContent.classList.remove('hidden');
+
+            if (tabId === 'contest') {
+                heroSection.classList.remove('hidden');
+                historySection.classList.remove('hidden');
+                problemsSection.classList.add('hidden');
+            } else {
+                heroSection.classList.add('hidden');
+                historySection.classList.add('hidden');
+                problemsSection.classList.remove('hidden');
+            }
+            hideError();
+        });
+    });
+
+    // Platform UI Selection Logic (Contest)
     platformRadios.forEach(radio => {
         radio.addEventListener('change', (e) => {
             const platform = e.target.value;
@@ -74,6 +134,33 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Platform UI Selection Logic (Problems)
+    problemPlatformRadios.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            const platform = e.target.value;
+            if (platform === 'codeforces') {
+                problemHandleCf.classList.remove('hidden');
+                problemHandleAc.classList.add('hidden');
+                problemCfRatingDiv.classList.remove('collapsed');
+                problemAcRatingDiv.classList.add('collapsed');
+                problemHandleCf.placeholder = "CF handle(s) (comma separated)";
+            } else if (platform === 'atcoder') {
+                problemHandleCf.classList.add('hidden');
+                problemHandleAc.classList.remove('hidden');
+                problemCfRatingDiv.classList.add('collapsed');
+                problemAcRatingDiv.classList.remove('collapsed');
+                problemHandleAc.placeholder = "AtCoder handle(s) (comma separated)";
+            } else if (platform === 'both') {
+                problemHandleCf.classList.remove('hidden');
+                problemHandleAc.classList.remove('hidden');
+                problemCfRatingDiv.classList.remove('collapsed');
+                problemAcRatingDiv.classList.remove('collapsed');
+                problemHandleCf.placeholder = "CF handle(s) (comma separated)";
+                problemHandleAc.placeholder = "AtCoder handle(s) (comma separated)";
+            }
+        });
+    });
+
     // Handle CF Gym collapse
     sourceGroup.forEach(radio => {
         radio.addEventListener('change', (e) => {
@@ -87,15 +174,26 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     getContestBtn.addEventListener('click', handleGetContest);
+    getProblemsBtn.addEventListener('click', handleGetProblems);
+    
     handleInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') handleGetContest();
     });
     handleInput.addEventListener('blur', fetchUserProfiles);
 
+    problemHandleCf.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleGetProblems();
+    });
+    problemHandleAc.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleGetProblems();
+    });
+
     clearHistoryBtn.addEventListener('click', () => {
         contestHistory = [];
         renderHistory();
     });
+
+    copyVjudgeBtn.addEventListener('click', copyVjudgeFormat);
 
     async function fetchUserProfiles() {
         const handleString = handleInput.value.trim();
@@ -554,5 +652,294 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function hideError() {
         errorContainer.classList.add('hidden');
+    }
+
+    async function handleGetProblems() {
+        const platform = getSelectedProblemPlatform();
+        const cfHandlesStr = problemHandleCf.value.trim();
+        const acHandlesStr = problemHandleAc.value.trim();
+        const count = parseInt(problemCount.value) || 5;
+        const recencyVal = problemRecencyFilter.value;
+        const cutoffTime = getCutoffTime(recencyVal);
+
+        hideError();
+        problemsEmptyState.classList.add('hidden');
+        problemsGrid.innerHTML = '';
+        loader.classList.remove('hidden');
+        getProblemsBtn.disabled = true;
+        copyVjudgeBtn.classList.add('hidden');
+
+        try {
+            fetchedProblemsList = [];
+            
+            if (platform === 'codeforces' || platform === 'both') {
+                const cfHandles = cfHandlesStr.split(',').map(h => h.trim()).filter(h => h);
+                if (cfHandles.length > 0) {
+                    const cfMin = parseInt(cfMinRating.value) || 0;
+                    const cfMax = parseInt(cfMaxRating.value) || 3500;
+                    await fetchCodeforcesProblemsList(cfHandles, cutoffTime, cfMin, cfMax, platform === 'both' ? Math.ceil(count/2) : count);
+                }
+            }
+            
+            if (platform === 'atcoder' || platform === 'both') {
+                const acHandles = acHandlesStr.split(',').map(h => h.trim()).filter(h => h);
+                if (acHandles.length > 0) {
+                    const acMin = parseInt(acMinDifficulty.value) || 0;
+                    const acMax = parseInt(acMaxDifficulty.value) || 4000;
+                    await fetchAtcoderProblemsList(acHandles, cutoffTime, acMin, acMax, platform === 'both' ? Math.floor(count/2) : count);
+                }
+            }
+
+            if (fetchedProblemsList.length === 0) {
+                if (platform === 'both' && !cfHandlesStr && !acHandlesStr) {
+                    throw new Error("Please enter handles to fetch problems.");
+                }
+                throw new Error("No unsolved problems found matching your criteria.");
+            }
+
+            shuffleArray(fetchedProblemsList);
+            if (fetchedProblemsList.length > count) {
+                fetchedProblemsList = fetchedProblemsList.slice(0, count);
+            }
+
+            renderProblems(fetchedProblemsList);
+        } catch (err) {
+            showError(err.message || "An unexpected error occurred.");
+            problemsEmptyState.classList.remove('hidden');
+        } finally {
+            loader.classList.add('hidden');
+            getProblemsBtn.disabled = false;
+        }
+    }
+
+    async function fetchCodeforcesProblemsList(handles, cutoffTime, minRating, maxRating, limit) {
+        loaderText.textContent = `Fetching Codeforces submissions...`;
+        
+        const solvedProblemNames = new Set();
+        
+        for (let i = 0; i < handles.length; i++) {
+            const handle = handles[i];
+            loaderText.textContent = `Fetching CF submissions for ${handle} (${i+1}/${handles.length})...`;
+            
+            const subsRes = await fetch(`https://codeforces.com/api/user.status?handle=${handle}`);
+            const contentType = subsRes.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                throw new Error(`CF Rate limit exceeded while fetching ${handle}.`);
+            }
+            
+            const subsData = await subsRes.json();
+            if (subsData.status !== 'OK') throw new Error(`Failed to fetch user ${handle}.`);
+            
+            for (const sub of subsData.result) {
+                if (sub.verdict === 'OK' && sub.problem && sub.problem.name) {
+                    solvedProblemNames.add(sub.problem.name);
+                }
+            }
+            
+            if (i < handles.length - 1) await new Promise(r => setTimeout(r, 400));
+        }
+
+        loaderText.textContent = `Fetching Codeforces problemset...`;
+        await new Promise(r => setTimeout(r, 400));
+        
+        const psRes = await fetch('https://codeforces.com/api/problemset.problems');
+        const psData = await psRes.json();
+        if (psData.status !== 'OK') throw new Error("Failed to fetch CF problemset.");
+        
+        const problems = psData.result.problems;
+        
+        let contestTimeMap = new Map();
+        if (cutoffTime > 0) {
+            loaderText.textContent = `Fetching Codeforces contests...`;
+            await new Promise(r => setTimeout(r, 400));
+            const cRes = await fetch('https://codeforces.com/api/contest.list?gym=false');
+            const cData = await cRes.json();
+            if (cData.status === 'OK') {
+                for (const c of cData.result) {
+                    contestTimeMap.set(c.id, c.startTimeSeconds);
+                }
+            }
+        }
+
+        const validProblems = problems.filter(p => {
+            if (!p.rating) return false;
+            if (p.rating < minRating || p.rating > maxRating) return false;
+            if (solvedProblemNames.has(p.name)) return false;
+            
+            if (cutoffTime > 0) {
+                const startTime = contestTimeMap.get(p.contestId);
+                if (!startTime || startTime < cutoffTime) return false;
+            }
+            return true;
+        });
+
+        shuffleArray(validProblems);
+        
+        const selected = validProblems.slice(0, limit);
+        for (const p of selected) {
+            fetchedProblemsList.push({
+                platform: 'codeforces',
+                id: `${p.contestId}${p.index}`,
+                name: p.name,
+                rating: p.rating,
+                link: `https://codeforces.com/contest/${p.contestId}/problem/${p.index}`
+            });
+        }
+    }
+
+    async function fetchAtcoderProblemsList(handles, cutoffTime, minDiff, maxDiff, limit) {
+        const solvedProblemIds = new Set();
+        
+        for (let i = 0; i < handles.length; i++) {
+            const handle = handles[i];
+            loaderText.textContent = `Fetching AtCoder submissions for ${handle} (${i+1}/${handles.length})...`;
+            
+            const res = await fetch(`https://kenkoooo.com/atcoder/atcoder-api/v3/user/submissions?user=${handle}&from_second=0`);
+            if (!res.ok) throw new Error(`Kenkoooo rate limit exceeded for ${handle}.`);
+            
+            const subs = await res.json();
+            for (const sub of subs) {
+                if (sub.result === 'AC') {
+                    solvedProblemIds.add(sub.problem_id);
+                }
+            }
+            
+            if (i < handles.length - 1) await new Promise(r => setTimeout(r, 1000));
+        }
+
+        loaderText.textContent = `Fetching AtCoder problems...`;
+        await new Promise(r => setTimeout(r, 400));
+        
+        const [probRes, modelRes] = await Promise.all([
+            fetch('https://kenkoooo.com/atcoder/resources/problems.json'),
+            fetch('https://kenkoooo.com/atcoder/resources/problem-models.json')
+        ]);
+        
+        if (!probRes.ok || !modelRes.ok) throw new Error("Failed to fetch AtCoder problems metadata.");
+        
+        const allProbs = await probRes.json();
+        const models = await modelRes.json();
+
+        let contestTimeMap = new Map();
+        if (cutoffTime > 0) {
+            const cRes = await fetch('https://kenkoooo.com/atcoder/resources/contests.json');
+            const contests = await cRes.json();
+            for (const c of contests) {
+                contestTimeMap.set(c.id, c.start_epoch_second);
+            }
+        }
+        
+        const validProblems = allProbs.filter(p => {
+            if (solvedProblemIds.has(p.id)) return false;
+            
+            const model = models[p.id];
+            if (!model || model.difficulty === undefined) return false;
+            
+            const diff = Math.round(model.difficulty);
+            if (diff < minDiff || diff > maxDiff) return false;
+            
+            if (cutoffTime > 0) {
+                const startTime = contestTimeMap.get(p.contest_id);
+                if (!startTime || startTime < cutoffTime) return false;
+            }
+            return true;
+        });
+
+        shuffleArray(validProblems);
+        
+        const selected = validProblems.slice(0, limit);
+        for (const p of selected) {
+            const diff = models[p.id].difficulty;
+            fetchedProblemsList.push({
+                platform: 'atcoder',
+                id: p.id,
+                name: p.name,
+                rating: Math.max(0, Math.round(diff)),
+                link: `https://atcoder.jp/contests/${p.contest_id}/tasks/${p.id}`
+            });
+        }
+    }
+
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    function renderProblems(problems) {
+        problemsGrid.innerHTML = '';
+        
+        problems.forEach(p => {
+            const card = document.createElement('div');
+            card.className = 'problem-card';
+            
+            const isCF = p.platform === 'codeforces';
+            const badgeClass = isCF ? 'type-codeforces' : 'type-atcoder';
+            const platformName = isCF ? 'CF' : 'AC';
+            const ratingColor = getRatingColor(p.rating, isCF);
+            
+            card.innerHTML = `
+                <div class="problem-header">
+                    <span class="result-badge type-badge ${badgeClass}" style="padding: 0.2rem 0.6rem; font-size: 0.75rem;">${platformName}</span>
+                    <span class="problem-id">${p.id}</span>
+                </div>
+                <h4 class="problem-name" style="margin-bottom: 0.5rem; font-size: 1.05rem;" title="${p.name}">${p.name}</h4>
+                <div class="problem-footer">
+                    <div class="problem-rating" style="color: ${ratingColor}; margin-right: auto; font-size: 0.85rem;">
+                        <span class="rating-icon">★</span> ${p.rating}
+                    </div>
+                    <a href="${p.link}" target="_blank" class="problem-solve-btn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Solve</a>
+                </div>
+            `;
+            problemsGrid.appendChild(card);
+        });
+        
+        copyVjudgeBtn.classList.remove('hidden');
+    }
+
+    function getRatingColor(rating, isCF) {
+        if (isCF) {
+            if (rating >= 2400) return '#ff3333';
+            if (rating >= 2100) return '#ff8c00';
+            if (rating >= 1900) return '#aa00aa';
+            if (rating >= 1600) return '#0000ff';
+            if (rating >= 1400) return '#03a89e';
+            if (rating >= 1200) return '#008000';
+            return 'var(--text-secondary)';
+        } else {
+            if (rating >= 2800) return '#ff0000';
+            if (rating >= 2400) return '#ff8c00';
+            if (rating >= 2000) return '#c0c000';
+            if (rating >= 1600) return '#0000ff';
+            if (rating >= 1200) return '#00ffff';
+            if (rating >= 800) return '#008000';
+            if (rating >= 400) return '#8b4513';
+            return 'var(--text-secondary)';
+        }
+    }
+
+    function copyVjudgeFormat() {
+        if (fetchedProblemsList.length === 0) return;
+        
+        const lines = fetchedProblemsList.map(p => {
+            if (p.platform === 'codeforces') {
+                return `CodeForces-${p.id}`;
+            } else {
+                return `AtCoder-${p.id}`;
+            }
+        });
+        
+        const textToCopy = lines.join('\n');
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            const originalText = copyVjudgeBtn.textContent;
+            copyVjudgeBtn.textContent = 'Copied!';
+            setTimeout(() => {
+                copyVjudgeBtn.textContent = originalText;
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy text: ', err);
+            alert("Failed to copy to clipboard.");
+        });
     }
 });
