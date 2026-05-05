@@ -118,9 +118,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const handles = handleString.split(',').map(h => h.trim()).filter(h => h);
             try {
                 const res = await fetch(`https://codeforces.com/api/user.info?handles=${handles.join(';')}`);
-                const data = await res.json();
-                if (data.status === 'OK') renderCodeforcesProfiles(data.result);
-                else userProfilesContainer.classList.add('hidden');
+                const contentType = res.headers.get("content-type");
+                if (contentType && contentType.includes("application/json")) {
+                    const data = await res.json();
+                    if (data.status === 'OK') renderCodeforcesProfiles(data.result);
+                    else userProfilesContainer.classList.add('hidden');
+                } else {
+                    userProfilesContainer.classList.add('hidden');
+                }
             } catch(err) { /* ignore */ }
         } else {
              const handles = handleString.split(',').map(h => h.trim()).filter(h => h);
@@ -265,14 +270,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const attemptedProblemNames = new Set();
         
         if (handles.length > 0) {
-            const fetchUserPromises = handles.map(async (handle) => {
+            const allUsersSubmissions = [];
+            for (let i = 0; i < handles.length; i++) {
+                const handle = handles[i];
                 const subsRes = await fetch(`https://codeforces.com/api/user.status?handle=${handle}`);
+                
+                const contentType = subsRes.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    throw new Error(`Received non-JSON response for ${handle}. Rate limit may be exceeded.`);
+                }
+                
                 const subsData = await subsRes.json();
                 if (subsData.status !== 'OK') throw new Error(subsData.comment || `Failed to fetch user ${handle}.`);
-                return subsData.result;
-            });
+                
+                allUsersSubmissions.push(subsData.result);
+                
+                if (i < handles.length - 1) {
+                    await new Promise(r => setTimeout(r, 400));
+                }
+            }
 
-            const allUsersSubmissions = await Promise.all(fetchUserPromises);
             for (const userSubmissions of allUsersSubmissions) {
                 for (const sub of userSubmissions) {
                     if (sub.contestId) attemptedContests.add(sub.contestId);
@@ -284,22 +301,33 @@ document.addEventListener('DOMContentLoaded', () => {
         const fetchGym = source === 'gym' || source === 'both';
         const fetchNormal = source === 'normal' || source === 'both';
 
+        if (handles.length > 0) {
+            await new Promise(r => setTimeout(r, 400));
+        }
+
+        async function fetchWithRetry(url) {
+            const res = await fetch(url);
+            const contentType = res.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                throw new Error(`Codeforces API rate limit hit when fetching data. Please wait and try again.`);
+            }
+            return await res.json();
+        }
+
         let allContests = [];
         const fetchPromises = [];
-        let problemListPromise = null;
+        let problemSetData = null;
 
         if (fetchNormal) {
-            fetchPromises.push(fetch('https://codeforces.com/api/contest.list?gym=false').then(r => r.json()));
-            problemListPromise = fetch('https://codeforces.com/api/problemset.problems').then(r => r.json());
+            const r1 = await fetchWithRetry('https://codeforces.com/api/contest.list?gym=false');
+            allContests = allContests.concat(r1.result);
+            await new Promise(r => setTimeout(r, 400));
+            problemSetData = await fetchWithRetry('https://codeforces.com/api/problemset.problems');
+            await new Promise(r => setTimeout(r, 400));
         }
-        if (fetchGym) fetchPromises.push(fetch('https://codeforces.com/api/contest.list?gym=true').then(r => r.json()));
-
-        const results = await Promise.all(fetchPromises);
-        let problemSetData = problemListPromise ? await problemListPromise : null;
-
-        for (const data of results) {
-            if (data.status !== 'OK') throw new Error("Failed to fetch contest list from Codeforces.");
-            allContests = allContests.concat(data.result);
+        if (fetchGym) {
+            const r2 = await fetchWithRetry('https://codeforces.com/api/contest.list?gym=true');
+            allContests = allContests.concat(r2.result);
         }
 
         const contestProblemsMap = new Map();
@@ -380,13 +408,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const attemptedContests = new Set();
 
         if (handles.length > 0) {
-            const fetchUserPromises = handles.map(async (handle) => {
+            const allSubs = [];
+            for (let i = 0; i < handles.length; i++) {
+                const handle = handles[i];
                 const res = await fetch(`https://kenkoooo.com/atcoder/atcoder-api/v3/user/submissions?user=${handle}&from_second=0`);
-                if (!res.ok) throw new Error(`Failed to fetch user ${handle} from Kenkoooo API.`);
-                return await res.json();
-            });
+                
+                const contentType = res.headers.get("content-type");
+                if (!res.ok || !contentType || !contentType.includes("application/json")) {
+                    throw new Error(`Failed to fetch user ${handle} from Kenkoooo API. Rate limit may be exceeded.`);
+                }
+                
+                allSubs.push(await res.json());
+                
+                if (i < handles.length - 1) {
+                    await new Promise(r => setTimeout(r, 400));
+                }
+            }
 
-            const allSubs = await Promise.all(fetchUserPromises);
             for (const subs of allSubs) {
                 for (const sub of subs) {
                     if (sub.contest_id) attemptedContests.add(sub.contest_id);
@@ -394,8 +432,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        if (handles.length > 0) {
+            await new Promise(r => setTimeout(r, 400));
+        }
+
         const res = await fetch('https://kenkoooo.com/atcoder/resources/contests.json');
-        if (!res.ok) throw new Error("Failed to fetch AtCoder contests from Kenkoooo.");
+        const resContentType = res.headers.get("content-type");
+        if (!res.ok || !resContentType || !resContentType.includes("application/json")) {
+            throw new Error("Failed to fetch AtCoder contests from Kenkoooo.");
+        }
         const allContests = await res.json();
 
         const validContests = allContests.filter(c => {
