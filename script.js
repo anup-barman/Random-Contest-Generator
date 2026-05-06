@@ -56,7 +56,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const problemRecencyFilter = document.getElementById('problem-recency-filter');
     const problemsGrid = document.getElementById('problems-grid');
     const problemsEmptyState = document.getElementById('problems-empty-state');
-    const copyVjudgeBtn = document.getElementById('copy-vjudge-btn');
 
     let contestHistory = [];
     let fetchedProblemsList = [];
@@ -192,8 +191,6 @@ document.addEventListener('DOMContentLoaded', () => {
         contestHistory = [];
         renderHistory();
     });
-
-    copyVjudgeBtn.addEventListener('click', copyVjudgeFormat);
 
     async function fetchUserProfiles() {
         const handleString = handleInput.value.trim();
@@ -667,7 +664,6 @@ document.addEventListener('DOMContentLoaded', () => {
         problemsGrid.innerHTML = '';
         loader.classList.remove('hidden');
         getProblemsBtn.disabled = true;
-        copyVjudgeBtn.classList.add('hidden');
 
         try {
             fetchedProblemsList = [];
@@ -675,7 +671,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (platform === 'codeforces' || platform === 'both') {
                 const cfHandles = cfHandlesStr.split(',').map(h => h.trim()).filter(h => h);
                 if (cfHandles.length > 0) {
-                    const cfMin = parseInt(cfMinRating.value) || 0;
+                    let cfMin = parseInt(cfMinRating.value);
+                    cfMin = isNaN(cfMin) ? 800 : Math.max(800, cfMin);
                     const cfMax = parseInt(cfMaxRating.value) || 3500;
                     await fetchCodeforcesProblemsList(cfHandles, cutoffTime, cfMin, cfMax, platform === 'both' ? Math.ceil(count/2) : count);
                 }
@@ -684,7 +681,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (platform === 'atcoder' || platform === 'both') {
                 const acHandles = acHandlesStr.split(',').map(h => h.trim()).filter(h => h);
                 if (acHandles.length > 0) {
-                    const acMin = parseInt(acMinDifficulty.value) || 0;
+                    let acMin = parseInt(acMinDifficulty.value);
+                    acMin = isNaN(acMin) ? 100 : Math.max(100, acMin);
                     const acMax = parseInt(acMaxDifficulty.value) || 4000;
                     await fetchAtcoderProblemsList(acHandles, cutoffTime, acMin, acMax, platform === 'both' ? Math.floor(count/2) : count);
                 }
@@ -884,7 +882,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="result-badge type-badge ${badgeClass}" style="padding: 0.2rem 0.6rem; font-size: 0.75rem;">${platformName}</span>
                     <span class="problem-id">${p.id}</span>
                 </div>
-                <h4 class="problem-name" style="margin-bottom: 0.5rem; font-size: 1.05rem;" title="${p.name}">${p.name}</h4>
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <h4 class="problem-name" style="margin-bottom: 0; font-size: 1.05rem; word-break: break-word;" title="${p.name}">${p.name}</h4>
+                    <button class="copy-name-btn" data-copy="${p.id}" style="background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); border-radius: 6px; cursor: pointer; color: var(--text-secondary); padding: 0.3rem; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" title="Copy Problem ID">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </button>
+                </div>
                 <div class="problem-footer">
                     <div class="problem-rating" style="color: ${ratingColor}; margin-right: auto; font-size: 0.85rem;">
                         <span class="rating-icon">★</span> ${p.rating}
@@ -892,10 +898,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     <a href="${p.link}" target="_blank" class="problem-solve-btn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Solve</a>
                 </div>
             `;
+            
+            const copyBtn = card.querySelector('.copy-name-btn');
+            copyBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(copyBtn.getAttribute('data-copy')).then(() => {
+                    const originalHTML = copyBtn.innerHTML;
+                    copyBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                    setTimeout(() => {
+                        copyBtn.innerHTML = originalHTML;
+                    }, 2000);
+                });
+            });
+            
             problemsGrid.appendChild(card);
         });
-        
-        copyVjudgeBtn.classList.remove('hidden');
     }
 
     function getRatingColor(rating, isCF) {
@@ -919,27 +935,4 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function copyVjudgeFormat() {
-        if (fetchedProblemsList.length === 0) return;
-        
-        const lines = fetchedProblemsList.map(p => {
-            if (p.platform === 'codeforces') {
-                return `CodeForces-${p.id}`;
-            } else {
-                return `AtCoder-${p.id}`;
-            }
-        });
-        
-        const textToCopy = lines.join('\n');
-        navigator.clipboard.writeText(textToCopy).then(() => {
-            const originalText = copyVjudgeBtn.textContent;
-            copyVjudgeBtn.textContent = 'Copied!';
-            setTimeout(() => {
-                copyVjudgeBtn.textContent = originalText;
-            }, 2000);
-        }).catch(err => {
-            console.error('Failed to copy text: ', err);
-            alert("Failed to copy to clipboard.");
-        });
-    }
 });

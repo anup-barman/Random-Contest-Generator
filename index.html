@@ -125,18 +125,18 @@
                         <div id="problem-cf-rating" class="filter-row custom-collapse">
                             <span class="filter-label">CF Rating Range</span>
                             <div class="range-inputs">
-                                <input type="number" id="cf-min-rating" class="custom-number-input" placeholder="Min" min="0" step="100" />
+                                <input type="number" id="cf-min-rating" class="custom-number-input" placeholder="Min" min="800" step="100" />
                                 <span class="range-separator">-</span>
-                                <input type="number" id="cf-max-rating" class="custom-number-input" placeholder="Max" min="0" step="100" />
+                                <input type="number" id="cf-max-rating" class="custom-number-input" placeholder="Max" min="800" step="100" />
                             </div>
                         </div>
 
                         <div id="problem-ac-rating" class="filter-row custom-collapse collapsed">
                             <span class="filter-label">AtCoder Difficulty</span>
                             <div class="range-inputs">
-                                <input type="number" id="ac-min-difficulty" class="custom-number-input" placeholder="Min" />
+                                <input type="number" id="ac-min-difficulty" class="custom-number-input" placeholder="Min" min="100" />
                                 <span class="range-separator">-</span>
-                                <input type="number" id="ac-max-difficulty" class="custom-number-input" placeholder="Max" />
+                                <input type="number" id="ac-max-difficulty" class="custom-number-input" placeholder="Max" min="100" />
                             </div>
                         </div>
 
@@ -219,14 +219,13 @@
             <section class="problems-section glass-panel hidden" id="main-problems-section">
                 <div class="history-header">
                     <h3>Fetched Problems</h3>
-                    <button id="copy-vjudge-btn" class="secondary-btn small-btn hidden" style="padding: 0.6rem 1rem; font-size: 0.9rem;">Copy VJudge Format</button>
+                </div>
+                <div class="empty-state" id="problems-empty-state" style="margin: auto;">
+                    <div class="hero-icon">🧩</div>
+                    <h2>Find Unsolved Problems</h2>
+                    <p>Enter handles and get a curated list of random unsolved problems.</p>
                 </div>
                 <div id="problems-grid" class="problems-grid">
-                    <div class="empty-state" id="problems-empty-state">
-                        <div class="hero-icon">🧩</div>
-                        <h2>Find Unsolved Problems</h2>
-                        <p>Enter handles and get a curated list of random unsolved problems.</p>
-                    </div>
                 </div>
             </section>
         </main>
