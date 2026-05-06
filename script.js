@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const handleInput = document.getElementById('handle-input');
+    const handleInputAc = document.getElementById('handle-input-ac');
     const getContestBtn = document.getElementById('get-contest-btn');
     const loader = document.getElementById('loader');
     const loaderText = document.getElementById('loader-text');
@@ -120,13 +121,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 cfDivisionGroup.classList.remove('hidden');
                 cfSourceFilter.classList.remove('collapsed');
                 divisionLabel.textContent = "CF Divisions";
+                handleInput.classList.remove('hidden');
+                handleInputAc.classList.add('hidden');
             } else if (platform === 'atcoder') {
                 acDivisionGroup.classList.remove('hidden');
                 divisionLabel.textContent = "AtCoder Types";
+                handleInput.classList.add('hidden');
+                handleInputAc.classList.remove('hidden');
+            } else if (platform === 'both') {
+                cfDivisionGroup.classList.remove('hidden');
+                acDivisionGroup.classList.remove('hidden');
+                cfSourceFilter.classList.remove('collapsed');
+                divisionLabel.textContent = "CF Divisions & AtCoder Types";
+                handleInput.classList.remove('hidden');
+                handleInputAc.classList.remove('hidden');
             }
             
             // Trigger profile fetch again if handle is present
-            if (handleInput.value.trim() !== '') {
+            const currentHandle = platform === 'atcoder' ? handleInputAc.value.trim() : handleInput.value.trim();
+            if (currentHandle !== '') {
                 lastFetchedHandles = ""; // force fetch
                 fetchUserProfiles();
             }
@@ -180,6 +193,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     handleInput.addEventListener('blur', fetchUserProfiles);
 
+    handleInputAc.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleGetContest();
+    });
+    handleInputAc.addEventListener('blur', fetchUserProfiles);
+
     problemHandleCf.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') handleGetProblems();
     });
@@ -193,8 +211,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     async function fetchUserProfiles() {
-        const handleString = handleInput.value.trim();
         const platform = getSelectedPlatform();
+        let handleString = handleInput.value.trim();
+        if (platform === 'atcoder') {
+            handleString = handleInputAc.value.trim();
+        }
         
         if (!handleString) {
             userProfilesContainer.classList.add('hidden');
@@ -300,7 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleGetContest() {
         const platform = getSelectedPlatform();
-        const handleString = handleInput.value.trim();
+        let handleString = platform === 'atcoder' ? handleInputAc.value.trim() : handleInput.value.trim();
         const recencyVal = recencyFilter.value;
         const cutoffTime = getCutoffTime(recencyVal);
 
@@ -314,16 +335,33 @@ document.addEventListener('DOMContentLoaded', () => {
         loader.classList.remove('hidden');
         getContestBtn.disabled = true;
 
-        let platformName = platform === 'codeforces' ? 'Codeforces' : 'AtCoder';
+        let platformName = platform === 'codeforces' ? 'Codeforces' : (platform === 'atcoder' ? 'AtCoder' : 'Codeforces & AtCoder');
         loaderText.textContent = `Fetching data from ${platformName}...`;
 
         try {
-            const handles = handleString.split(',').map(h => h.trim()).filter(h => h);
-            
             if (platform === 'codeforces') {
+                const handles = handleInput.value.trim().split(',').map(h => h.trim()).filter(h => h);
                 await fetchCodeforcesContest(handles, cutoffTime);
             } else if (platform === 'atcoder') {
+                const handles = handleInputAc.value.trim().split(',').map(h => h.trim()).filter(h => h);
                 await fetchAtcoderContest(handles, cutoffTime);
+            } else if (platform === 'both') {
+                const cfHandles = handleInput.value.trim().split(',').map(h => h.trim()).filter(h => h);
+                const acHandles = handleInputAc.value.trim().split(',').map(h => h.trim()).filter(h => h);
+                
+                if (Math.random() < 0.5) {
+                    try {
+                        await fetchCodeforcesContest(cfHandles, cutoffTime);
+                    } catch (e) {
+                        await fetchAtcoderContest(acHandles, cutoffTime);
+                    }
+                } else {
+                    try {
+                        await fetchAtcoderContest(acHandles, cutoffTime);
+                    } catch (e) {
+                        await fetchCodeforcesContest(cfHandles, cutoffTime);
+                    }
+                }
             }
         } catch (err) {
             loader.classList.add('hidden');

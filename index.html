@@ -33,9 +33,13 @@
                         <span>Codeforces</span></label>
                     <label class="toggle-btn"><input type="radio" name="platform" value="atcoder">
                         <span>AtCoder</span></label>
+                    <label class="toggle-btn"><input type="radio" name="platform" value="both">
+                        <span>Both</span></label>
                 </div>
 
-                <input type="text" id="handle-input" placeholder="Enter handle(s) (comma separated)"
+                <input type="text" id="handle-input" class="contest-handle-input" placeholder="CF handle(s) (comma separated)"
+                    autocomplete="off" />
+                <input type="text" id="handle-input-ac" class="contest-handle-input hidden" placeholder="AtCoder handle(s) (comma separated)"
                     autocomplete="off" />
 
                 <div id="user-profiles-container" class="user-profiles hidden">
