@@ -1,53 +1,28 @@
-# Random Codeforces Contest Generator
+# SkillSync
 
-[**Live Demo**](https://anup-barman.github.io/Random-Contest-Generator/)
+**[Live Site](https://anup-barman.github.io/SkillSync/)**
 
-A modern, web-based tool designed to help competitive programmers practice by suggesting a random, unsolved Codeforces contest based on their user handle and preferred filters. Say goodbye to the hassle of scrolling through pages of Codeforces past contests to find one you haven't attempted!
+SkillSync helps competitive programmers find unsolved contests and problems from Codeforces and AtCoder. Enter your handle, set your filters, and get a random challenge instantly.
 
-## ✨ Features
+## What It Does
 
-- **Smart Filtering (Unsolved Contests)**: Enter your Codeforces handle to ensure the generated contest is strictly one where you have zero prior submissions.
-- **Contest Sources**: Choose between standard **Normal** contests, **Gym** contests, or **Both**.
-- **Granular Division Selection**: Customize exactly what type of standard contest you want to practice. Filter by:
-  - Div. 1
-  - Div. 2
-  - Div. 3
-  - Div. 4
-  - Educational
-  - Global
-  - Other
-- **Direct Actions**: Instantly navigate to the **"Start Virtual Contest"** page or view the contest directly with one click!
-- **Sleek UI/UX**: Includes a beautiful glassmorphism-based design, complete with responsive layout, custom toggles, and loading states.
-- **Codeforces API Integration**: Leverages the official Codeforces API securely and directly from the browser without needing a backend server.
+**Contest Generator** — Randomly selects an unsolved contest for you. Supports Codeforces (Normal, Gym, or both) and AtCoder, with filters for division type, contest category, and recency. Start a virtual contest or jump to the problemset in one click.
 
-## 🚀 Live Website
+**Problem Fetcher** — Pulls a set of random unsolved problems across either or both platforms. Set a rating/difficulty range, choose how many problems you want, and copy the results as a formatted list.
 
-Try it out here: **[Random-Contest-Generator](https://anup-barman.github.io/Random-Contest-Generator/)**
+## Tech Stack
 
-## 🛠️ Built With
+HTML · CSS · JavaScript — fully client-side, no backend needed.
 
-- **HTML5**: For semantic structure.
-- **CSS3 (Vanilla)**: For modern, responsive styling, flexbox layouts, CSS Grid, and cool glassmorphic effects.
-- **JavaScript (Vanilla)**: Handles the logic, asynchronous Codeforces API requests, state management, and DOM manipulation. 
+## Local Setup
 
-## 💻 Running Locally
+```bash
+git clone https://github.com/anup-barman/Random-Contest-Generator.git
+cd Random-Contest-Generator
+```
 
-Since this project runs entirely on the client-side (frontend), you don't need any special package managers or build tools.
+Open `index.html` in any browser.
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/anup-barman/Random-Contest-Generator.git
-   ```
-2. Navigate to the project directory:
-   ```bash
-   cd Random-Contest-Generator
-   ```
-3. Open `index.html` in your favorite modern web browser or use a local development server like Live Server in VS Code.
+## License
 
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome! Feel free to check the issues page if you want to contribute.
-
-## 📝 License
-
-This project is open-source and available under the standard MIT License.
+MIT
